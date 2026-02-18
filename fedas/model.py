@@ -68,15 +68,25 @@ class ModelManagerFedas(ModelManager):
             for c in range(self.num_classes)
         ]
         
-    def align(self, server_state_dict: Dict[str, torch.Tensor]) ->  Dict[str, torch.Tensor]:
+    def align(self, server_state_dict: Dict[str, torch.Tensor], previous_global) ->  Dict[str, torch.Tensor]:
         # Get class-specific prototypes from the local model
         local_prototypes = [[] for _ in range(self.num_classes)]
 
+        cleaned_previous_global = {
+            k.replace("_global_net.", ""): v
+            for k, v in previous_global.items()
+        }
+        self.model.global_net.load_state_dict(cleaned_previous_global)
+        
         # print(f'client{id}')
-        for batch in self.trainloader:
+        for i, batch in enumerate(self.trainloader):
+            if i >= 1:  # ou 2 max
+                break
             x_batch = batch['img'].to(self.device)
             y_batch = batch['label'].to(self.device)
 
+            self.model.global_net.eval()
+            
             with torch.no_grad():
                 proto_batch = self.model.global_net(x_batch)
 
@@ -132,7 +142,12 @@ class ModelManagerFedas(ModelManager):
                 loss.backward()
                 alignment_optimizer.step()
                 
-        return server_model.state_dict()
+        return {
+            k: v
+            for k, v in server_model.state_dict().items()
+            if k.startswith("_global_net")
+        }
+
     
     def get_alpha(self) -> float:
         self._model.eval()
