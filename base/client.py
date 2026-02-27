@@ -80,6 +80,12 @@ class BaseClient(NumPyClient):
             epochs=epochs,  
             verbose=verbose
         )
+        
+    def perform_test(self, full_report: bool = False) -> Dict[str, Union[float, Dict]]:
+        """
+        Test the client model and return the metrics.
+        """
+        return self.model_manager.test(full_report=full_report)
     
     def fit(self, parameters, config) -> tuple[List[np.ndarray], int, Dict[str, List[Dict[str, float]]]]: # type: ignore[attr-defined]
         # Be aware, here we change the return type of the function because we perform the aggregation of the metrics later.

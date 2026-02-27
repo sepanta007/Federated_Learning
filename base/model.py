@@ -227,7 +227,15 @@ class ModelManager:
                 total += labels.size(0)
                 correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
             if verbose and _ >= epochs // 10 and _ % 10 == 0:
-                log(INFO, f"Epoch {_+1}/{epochs}, Loss: {epoch_loss / len(self.trainloader):.4f}")
+                current_loss = epoch_loss / len(self.trainloader)
+                current_accuracy = correct / total
+
+                log(
+                    INFO,
+                    f"Epoch {_+1}/{epochs}, "
+                    f"Accuracy: {current_accuracy:.4f}, "
+                    f"Loss: {current_loss:.4f}"
+                )
                 
         # Save client state (local_net)
         if self.client_save_path is not None:
@@ -304,3 +312,81 @@ class ModelManager:
         return self._model
 
         
+class LocalOnlyModelManager(ModelManager):
+    def train(
+        self,
+        epochs: int = 1,
+        verbose: bool = False
+    ):
+        """Train model and evaluate on test set every epoch for LocalOnly."""
+        if self.client_save_path is not None:
+            try:
+                self.model.local_net.load_state_dict(torch.load(self.client_save_path))
+            except FileNotFoundError:
+                log(INFO, "No client state found, training from scratch.")
+                pass
+
+        criterion = torch.nn.CrossEntropyLoss()
+        optimizer = self._get_optimizer()
+
+        epoch_losses = []
+        epoch_accuracies = []
+        test_epoch_losses = []
+        test_epoch_accuracies = []
+
+        for epoch in range(epochs):
+            # ========== TRAIN ==========
+            self.model.train()
+            correct, total, epoch_loss = 0, 0, 0.0
+            for batch in self.trainloader:
+                optimizer.zero_grad()
+                images, labels = batch['img'], batch['label']
+                images, labels = images.to(self.device), labels.to(self.device)
+                outputs = self.model(images)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
+
+                epoch_loss += loss.item() * labels.size(0)
+                total += labels.size(0)
+                correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
+
+            epoch_loss /= total
+            epoch_accuracy = correct / total
+            epoch_losses.append(epoch_loss)
+            epoch_accuracies.append(epoch_accuracy)
+
+            # ========== TEST ==========
+            self.model.eval()
+            correct, total, test_loss = 0, 0, 0.0
+            with torch.no_grad():
+                for batch in self.testloader:
+                    images, labels = batch['img'], batch['label']
+                    images, labels = images.to(self.device), labels.to(self.device)
+                    outputs = self.model(images)
+                    loss = criterion(outputs, labels)
+                    test_loss += loss.item() * labels.size(0)
+                    total += labels.size(0)
+                    correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
+
+            test_loss /= total
+            test_accuracy = correct / total
+            test_epoch_losses.append(test_loss)
+            test_epoch_accuracies.append(test_accuracy)
+
+            if verbose:
+                log(INFO,
+                    f"Epoch {epoch+1}/{epochs} | "
+                    f"Train Acc: {epoch_accuracy:.4f}, Train Loss: {epoch_loss:.4f} | "
+                    f"Test Acc: {test_accuracy:.4f}, Test Loss: {test_loss:.4f}"
+                )
+
+        if self.client_save_path is not None:
+            torch.save(self.model.local_net.state_dict(), self.client_save_path)
+
+        return {
+            "epoch_loss": epoch_losses,
+            "epoch_accuracy": epoch_accuracies,
+            "test_epoch_loss": test_epoch_losses,
+            "test_epoch_accuracy": test_epoch_accuracies,
+        }

@@ -94,7 +94,7 @@ def main():
         return
 
     metrics = extract_metrics(args.log_path)
-    save_path = os.path.join(os.path.split(args.log_path)[0], "metric_")
+    save_path = os.path.join(os.path.split(args.log_path)[0], "metric")
     plot_metrics(metrics, save_path)
 
 if __name__ == "__main__":

@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual env
+venv/
+
+# Test folders
+test_fedas/
+test_fedavg/
+test_fedper/
+test_fedrep/
+test_local/

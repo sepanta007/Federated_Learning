@@ -14,10 +14,11 @@ server_config:
 
 hydra:
   run:
-    dir: ../${session_name}/${now:%Y-%m-%d}/${now:%H-%M-%S}_${hydra.job.num}
-    #dir: ../${session_name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    dir: ${session_name}/${now:%Y-%m-%d}/${now:%H-%M-%S}_${hydra.job.num}
+    # dir: ${session_name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 defaults:
+  - _self_
   - dataset: cifar10
   - client_config: fedavgft
   - model: cnn_net

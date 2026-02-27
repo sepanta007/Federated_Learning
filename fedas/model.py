@@ -139,7 +139,15 @@ class ModelManagerFedas(ModelManager):
                 )
 
                 alignment_optimizer.zero_grad()
+                for name, p in server_model.global_net.named_parameters():
+                    if torch.isnan(p).any():
+                        print(f"NaN detected in parameter: {name}, LR={self.lr_align}")
+
                 loss.backward()
+                for name, p in server_model.global_net.named_parameters():
+                    if p.grad is not None and torch.isnan(p.grad).any():
+                        print(f"NaN detected in gradient: {name}, LR={self.lr_align}")
+                torch.nn.utils.clip_grad_norm_(server_model.global_net.parameters(), 1.0)
                 alignment_optimizer.step()
                 
         return {

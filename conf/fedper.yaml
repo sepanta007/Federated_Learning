@@ -1,8 +1,8 @@
 num_clients: 20
 num_rounds: 100
 seed: 42
-session_name: test_fedas
-algorithm: fedas
+session_name: test_fedper
+algorithm: fedper
 device: cuda
 
 server_config:
@@ -16,9 +16,8 @@ hydra:
   run:
     dir: ${session_name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
-
 defaults:
   - _self_
   - dataset: cifar10
-  - client_config: fedas
+  - client_config: fedper
   - model: cnn_net

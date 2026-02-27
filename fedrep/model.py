@@ -42,7 +42,7 @@ class ModelManagerFedrep(ModelManager):
              [
                 {"params": weights, "weight_decay": self.config.client_config.weight_decay},
                 {"params": biases, "weight_decay": 0.0},
-            ], lr=self.config.client_config.learning_rate, momentum=self.config.client_config.momentum)
+            ], lr=self.config.client_config.local_learning_rate, momentum=self.config.client_config.momentum)
         correct, total = 0, 0
         epoch_loss = 0
         loss: torch.Tensor = 0.0
